@@ -482,23 +482,27 @@ async def generate_music_direct(request: GenerateMusicRequest):
         format_type = audio_data_dict['format']
         
         # PyTorchテンソルをバイト形式に変換
-        import io
+        import tempfile
         import torchaudio
+        import os
         
-        buffer = io.BytesIO()
+        # Create a temp file with the correct extension
+        with tempfile.NamedTemporaryFile(suffix=f'.{format_type}', delete=False) as tmp_file:
+            temp_path = tmp_file.name
         backend = "soundfile"
         if format_type == "ogg":
             backend = "sox"
         
         torchaudio.save(
-            buffer, 
-            audio_tensor, 
-            sample_rate=sample_rate, 
-            format=format_type, 
+            temp_path,
+            audio_tensor,
+            sample_rate=sample_rate,
+            format=format_type,
             backend=backend
         )
-        audio_bytes = buffer.getvalue()
-        buffer.close()
+        with open(temp_path, 'rb') as f:
+            audio_bytes = f.read()
+        os.remove(temp_path)
         
         # Content-Typeを設定
         content_type = "audio/wav"  # デフォルト
